@@ -1,0 +1,103 @@
+version: "3.3"
+
+networks:
+  mal-scan-web:
+    driver: bridge
+
+volumes:
+  npm_data:
+  mysql_data:
+  redis_data:
+  npm_manager_data:
+  npm_manager_letsencrypt:
+
+services:
+  reverseproxy:
+    image: wjddn0623/secure-analyzer-npm:latest
+    container_name: reverseproxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "81:81"
+      - "443:443"
+    volumes:
+      - npm_manager_data:/data
+      - npm_manager_letsencrypt:/etc/letsencrypt
+    depends_on:
+      - front-react
+      - node-backend
+    networks:
+      mal-scan-web:
+        aliases:
+          - secure-analyzer.com
+
+  front-react:
+    image: wjddn0623/secure-analyzer-front:latest
+    container_name: front-react
+    restart: unless-stopped
+    ports:
+      - "8001:80"
+    networks:
+      - mal-scan-web
+
+  node-backend:
+    image: wjddn0623/secure-analyzer-node:latest
+    container_name: node-backend
+    restart: unless-stopped
+    environment:
+      PORT: 8011
+      ANALYZER_SERVICE_URL: http://secure-analyzer.com/api/analysis
+      ANALYZER_UPLOAD_PATH: /analyze
+      ANALYZER_DIRECT_URL: http://analysis-yara:8083
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      DB_HOST: mal-db
+      DB_USER: mal-db
+      DB_PASSWORD: "123456"
+      DB_NAME: mal-db
+    ports:
+      - "8011:8011"
+    depends_on:
+      - mal-db
+      - analysis-yara
+      - redis
+    networks:
+      - mal-scan-web
+
+  analysis-yara:
+    image: wjddn0623/secure-analyzer-yara:latest
+    container_name: analysis-yara
+    restart: unless-stopped
+    environment:
+      PORT: 8083
+    ports:
+      - "8083:8083"
+    networks:
+      - mal-scan-web
+
+  mal-db:
+    image: wjddn0623/secure-analyzer-db:latest
+    container_name: mal-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: mal-db
+      MYSQL_USER: mal-db
+      MYSQL_PASSWORD: "123456"
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - mal-scan-web
+
+  redis:
+    image: wjddn0623/secure-analyzer-redis:latest
+    container_name: redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    networks:
+      - mal-scan-web
+
+
