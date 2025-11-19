@@ -14,7 +14,7 @@
 ```bash
 # 리포지토리 클론
 git clone https://github.com/JungWooJJING/Cloud_project_auto_build.git
-cd Cloud_projec_auto_build
+cd Cloud_project_auto_build
 
 # 실행 권한 부여 (최초 1회)
 chmod +x auto_build.sh
